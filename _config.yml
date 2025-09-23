@@ -1,3 +1,6 @@
 theme: jekyll-theme-minimal
 title: Frouk's Blog
 description: A blog about tech, programming, and about Frouk's life.
+timezone: Europe/Kyiv
+theme_settings:
+  post_navigation: true
