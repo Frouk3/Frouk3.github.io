@@ -1,0 +1,59 @@
+/* General style */
+
+.main-nav-list
+{
+    display: flex;
+    width: 95vw;
+    background-color: aliceblue;
+    padding-right: 4%;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    overflow: visible;
+    transition: 0.3s ease-in-out;
+}
+
+.main-nav-list.hide
+{
+    top: -60px;
+    transform: translateY(-60%);
+}
+
+.main-nav-list ul 
+{
+    flex: 1;
+    text-align: center;
+    list-style: none;
+}
+
+.main-nav-list a 
+{
+    display: block; 
+    padding: 5px 5px; 
+    text-decoration: none;
+    color: #333;
+}
+
+.main-nav-list a:hover 
+{
+    border-radius: 5%;
+    background-color: #36454F;
+    background-blend-mode: multiply;
+    transition: 0.4s;
+    color: white;
+}
+
+button 
+{
+    padding: 5px 10px;
+    border: none;
+    background: transparent;
+}
+
+button:hover
+{
+    border-radius: 5%;
+    background-color: lightgray;
+    cursor: pointer;
+    transition: 0.4s;
+}
