@@ -54,6 +54,7 @@ button:hover
 {
     border-radius: 5%;
     background-color: lightgray;
+    background-blend-mode: multiply;
     cursor: pointer;
     transition: 0.4s;
 }
