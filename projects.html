@@ -4,16 +4,55 @@
         <link rel="stylesheet" href="style/style.css">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="UTF-8">
+        <meta name="description" content="A list of projects by Frouk3 — open-source tools, templates and modding utilities.">
         <title>Frouk's Projects</title>
         <script src="scripts/script.js" defer></script>
     </head>
     <body>
-        <div class="main-nav-list">
-            <ul><a href="./index.html">Home</a></ul>
-            <ul><a href="./contact.html">Contact</a></ul>
-            <ul><a href="./blog.html">Blog</a></ul>
-            <ul><a href="./projects.html">Projects</a></ul>
-            <ul><a href="./about.html">About</a></ul>
-        </div>
+        <header>
+            <div class="main-nav-list">
+                <div style="flex:1">
+                    <a href="./index.html" style="font-weight:700; color:inherit;">Frouk3</a>
+                </div>
+                <nav aria-label="Main navigation">
+                    <ul>
+                        <li><a href="./index.html">Home</a></li>
+                        <li><a href="./projects.html" aria-current="page">Projects</a></li>
+                        <li><a href="./blog.html">Blog</a></li>
+                        <li><a href="./about.html">About</a></li>
+                        <li><a href="./contact.html">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <main>
+            <h1>Projects</h1>
+            <p class="lead">A curated list of some open-source projects and templates I maintain. For the full list, see my GitHub profile.</p>
+
+            <section class="projects">
+                <ul class="projects-list">
+                    <li>
+                        <a href="https://github.com/Frouk3/mgr-plugin-sdk">Metal Gear Rising: Revengeance — plugin framework</a>
+                        <p class="muted">A framework for building plugins for MGR: Revengeance.</p>
+                    </li>
+                    <li>
+                        <a href="https://github.com/Frouk3/MGRImGuiTemplate">MGR ImGui template</a>
+                        <p class="muted">A starter template integrating ImGui into the game.</p>
+                    </li>
+                    <li>
+                        <a href="https://github.com/Frouk3/MGRModLoader">MGR Mod Loader</a>
+                        <p class="muted">A mod loader for managing community modifications.</p>
+                    </li>
+                    <li>
+                        <a href="https://github.com/Frouk3?tab=repositories">More projects on my GitHub</a>
+                    </li>
+                </ul>
+            </section>
+        </main>
+
+        <footer>
+            <p>© <span id="year">2025</span> Frouk3 — <a href="https://github.com/Frouk3">GitHub</a></p>
+        </footer>
     </body>
 </html>

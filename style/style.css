@@ -118,3 +118,46 @@ footer {
         padding: 0 1vw;
     }
 }
+
+/* Projects list styling */
+.projects-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+}
+
+.projects-list li {
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(250,250,250,1), rgba(245,247,250,1));
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+.projects-list a {
+    font-weight: 600;
+    color: #0b66c3;
+}
+
+.muted {
+    margin: 6px 0 0 0;
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+.lead {
+    color: #4b5563;
+    margin-top: 0;
+}
+
+.main-nav-list a[aria-current="page"] {
+    background: rgba(0,120,212,0.08);
+    color: #0078d4;
+}
+
+/* Small helper for contact icon */
+#DiscordLogoContact:hover {
+    cursor: pointer;
+}
