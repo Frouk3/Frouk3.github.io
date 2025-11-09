@@ -1,6 +1,4 @@
 /* General style */
-
-
 body {
     font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
     background: #f7f9fb;
@@ -10,9 +8,14 @@ body {
     line-height: 1.7;
 }
 
+:root {
+    --nav-height: 64px; /* used to offset sticky header */
+}
+
 .main-nav-list {
     display: flex;
     width: 90vw;
+    height: var(--nav-height);
     background: #fff;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     padding: 0 5vw;
@@ -70,9 +73,14 @@ button:hover {
     cursor: pointer;
 }
 
+/* ensure the sticky header doesn't cover page content */
+body {
+    padding-top: var(--nav-height);
+}
+
 main {
     max-width: 900px;
-    margin: 40px auto;
+    margin: 24px auto;
     padding: 0 2vw;
     padding-bottom: 40px;
     background: #fff;
