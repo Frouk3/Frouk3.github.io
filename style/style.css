@@ -8,10 +8,6 @@ body {
     line-height: 1.7;
 }
 
-:root {
-    --nav-height: 64px; /* used to offset sticky header */
-}
-
 .main-nav-list {
     display: flex;
     width: 90vw;
