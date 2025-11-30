@@ -14,3 +14,37 @@ window.addEventListener('scroll', function()
     }
     lastScrollTop = this.scrollY;
 });
+
+// Render last three blog posts from a simple text config
+// Format per line: Title|/path/to/post.html|/path/to/preview.jpg
+async function renderRecentPosts() {
+    const container = document.getElementById('recent-posts');
+    if (!container) return;
+    try {
+        const resp = await fetch('blog/posts.txt', { cache: 'no-cache' });
+        if (!resp.ok) throw new Error('Failed to load posts.txt');
+        const text = await resp.text();
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+        const items = lines.map(l => {
+            const parts = l.split('|');
+            const [title, href, image] = [parts[0] || '', parts[1] || '', parts[2] || 'assets/not-found.svg'];
+            return { title, href, image };
+        }).reverse().slice(0, 3); // take last three entries
+
+        container.innerHTML = items.map(({ title, href, image }) => `
+            <li class="blog-card">
+                <a href="${href}">
+                    <span class="thumb">
+                        <img src="${image || 'assets/not-found.svg'}" alt="${title} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
+                    </span>
+                    <h3>${title}</h3>
+                </a>
+            </li>
+        `).join('');
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<li class="muted">No recent posts found.</li>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', renderRecentPosts);
