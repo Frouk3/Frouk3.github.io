@@ -17,15 +17,18 @@ window.addEventListener('scroll', function()
 
 // Render last three blog posts from a simple text config
 // Format per line: Title|/path/to/post.html|/path/to/preview.jpg
-async function renderRecentPosts() {
+async function renderRecentPosts() 
+{
     const container = document.getElementById('recent-posts');
     if (!container) return;
-    try {
+    try 
+    {
         const resp = await fetch('blog/posts.txt', { cache: 'no-cache' });
         if (!resp.ok) throw new Error('Failed to load posts.txt');
         const text = await resp.text();
         const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
-        const items = lines.map(l => {
+        const items = lines.map(l => 
+        {
             const parts = l.split('|');
             const [title, href, image] = [parts[0] || '', parts[1] || '', parts[2] || 'assets/not-found.svg'];
             return { title, href, image };
@@ -41,7 +44,9 @@ async function renderRecentPosts() {
                 </a>
             </li>
         `).join('');
-    } catch (e) {
+    } 
+    catch (e) 
+    {
         console.error(e);
         container.innerHTML = '<li class="muted">No recent posts found.</li>';
     }
