@@ -52,4 +52,36 @@ async function renderRecentPosts()
     }
 }
 
+async function renderBlogGrid()
+{
+    const fs = require('fs');
+    const path = require('path');
+    const container = document.getElementsByClassName('blog-grid')[0];
+    if (!container) return;
+    const files = fs.readdirSync('./blog').filter(f => f.endsWith('.html'));
+    try
+    {
+        container.innerHtml = files.map(blog => 
+            {
+                const filePath = path.join('./blog', blog);
+                const content = fs.readFileSync(filePath, 'utf-8');
+                const titleMatch = content.match(/<h2.*?>(.*?)<\/h2>/);
+                const title = titleMatch ? titleMatch[1] : 'Untitled';
+                return `
+                    <li class="blog-card">
+                        <a href="./blog/${blog}">
+                            <h3>${title}</h3>
+                        </a>
+                    </li>
+                `
+            }).join('');
+    }
+    catch(e)
+    {
+        console.error(e);
+        container.innerHTML = '<div class="muted">Failed to load blog posts.</div>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', renderBlogGrid);
 document.addEventListener('DOMContentLoaded', renderRecentPosts);
