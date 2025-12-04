@@ -52,36 +52,38 @@ async function renderRecentPosts()
     }
 }
 
-async function renderBlogGrid()
+document.addEventListener('DOMContentLoaded', renderRecentPosts);
+
+async function renderAllBlogPosts(containerId = 'all-posts') 
 {
-    const fs = require('fs');
-    const path = require('path');
-    const container = document.getElementsByClassName('blog-grid')[0];
+    const container = document.getElementById(containerId);
     if (!container) return;
-    const files = fs.readdirSync('./blog').filter(f => f.endsWith('.html'));
-    try
+    try 
     {
-        container.innerHtml = files.map(blog => 
-            {
-                const filePath = path.join('./blog', blog);
-                const content = fs.readFileSync(filePath, 'utf-8');
-                const titleMatch = content.match(/<h2.*?>(.*?)<\/h2>/);
-                const title = titleMatch ? titleMatch[1] : 'Untitled';
-                return `
-                    <li class="blog-card">
-                        <a href="./blog/${blog}">
-                            <h3>${title}</h3>
-                        </a>
-                    </li>
-                `
-            }).join('');
-    }
-    catch(e)
+        const resp = await fetch('blog/posts.json', { cache: 'no-cache' });
+        if (!resp.ok) throw new Error('Failed to load blog/posts.json');
+        const items = await resp.json();
+        if (!Array.isArray(items) || items.length === 0) 
+        {
+            container.innerHTML = '<li class="muted">No posts available.</li>';
+            return;
+        }
+        container.innerHTML = items.map(({ title, href, preview }) => `
+            <li class="blog-card">
+                <a href="${href}">
+                    <span class="thumb">
+                        <img src="${preview || 'assets/not-found.svg'}" alt="${title} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
+                    </span>
+                    <h3>${title}</h3>
+                </a>
+            </li>
+        `).join('');
+    } 
+    catch (e) 
     {
         console.error(e);
-        container.innerHTML = '<div class="muted">Failed to load blog posts.</div>';
+        container.innerHTML = '<li class="muted">Failed to load posts.</li>';
     }
 }
 
-document.addEventListener('DOMContentLoaded', renderBlogGrid);
-document.addEventListener('DOMContentLoaded', renderRecentPosts);
+document.addEventListener('DOMContentLoaded', () => renderAllBlogPosts());
