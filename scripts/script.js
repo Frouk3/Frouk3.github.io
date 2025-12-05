@@ -1,6 +1,7 @@
 // Theme toggling
 const THEME_KEY = 'theme';
 let themeToggleBtn = null;
+let suppressFadeUntil = 0;
 
 function applyTheme(theme) 
 {
@@ -12,6 +13,7 @@ function applyTheme(theme)
     {
         themeToggleBtn.textContent = isDark ? 'Light mode' : 'Dark mode';
     }
+    updateGiscusTheme(theme);
 }
 
 function initThemeToggle() 
@@ -33,6 +35,9 @@ function initThemeToggle()
             document.body.classList.add('theme-fade');
             setTimeout(() => document.body.classList.remove('theme-fade'), 220);
         }
+        suppressFadeUntil = Date.now() + 600; // guard: prevent fade-out immediately after theme toggle
+        document.body.classList.add('suppress-fade');
+        setTimeout(() => document.body.classList.remove('suppress-fade'), 700);
         applyTheme(next);
     });
 
@@ -46,6 +51,25 @@ function initThemeToggle()
     else 
     {
         document.body.prepend(themeToggleBtn);
+    }
+}
+
+function updateGiscusTheme(theme) {
+    const desired = theme === 'dark' ? 'dark' : 'light';
+    const frame = document.querySelector('iframe.giscus-frame');
+    if (frame && frame.contentWindow) 
+    {
+        frame.contentWindow.postMessage({ giscus: { setConfig: { theme: desired } } }, 'https://giscus.app');
+    } 
+    else 
+    {
+        // retry shortly after load in case giscus iframe isn't ready yet
+        setTimeout(() => {
+            const f2 = document.querySelector('iframe.giscus-frame');
+            if (f2 && f2.contentWindow) {
+                f2.contentWindow.postMessage({ giscus: { setConfig: { theme: desired } } }, 'https://giscus.app');
+            }
+        }, 500);
     }
 }
 
@@ -114,6 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAllBlogPosts();
     initThemeToggle();
     initPageFade();
+    // ensure giscus matches stored/system theme on first load
+    const saved = (() => { try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; } })();
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initial = saved || (prefersDark ? 'dark' : 'light');
+    updateGiscusTheme(initial);
 });
 
 async function renderAllBlogPosts(containerId = 'all-posts') 
