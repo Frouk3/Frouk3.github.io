@@ -11,7 +11,13 @@ function applyTheme(theme)
     try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* ignore */ }
     if (themeToggleBtn) 
     {
-        themeToggleBtn.textContent = isDark ? 'Light mode' : 'Dark mode';
+        const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+        if (!isDark)
+            themeToggleBtn.innerHTML = `<img src="/assets/moon.svg" alt="" width="18" height="18">`;
+        else
+            themeToggleBtn.innerHTML = `<img src="/assets/sun.svg" alt="" width="18" height="18" style="filter: invert(1);">`;
+        themeToggleBtn.setAttribute('aria-label', label);
+        themeToggleBtn.setAttribute('title', label);
     }
     updateGiscusTheme(theme);
 }
@@ -96,36 +102,62 @@ function initPageFade()
     }
 }
 
-// Render last three blog posts from a simple text config
-// Format per line: Title|/path/to/post.html|/path/to/preview.jpg
+// Render last three blog posts using posts.json (with dates)
 async function renderRecentPosts() 
 {
     const container = document.getElementById('recent-posts');
     if (!container) return;
     try 
     {
-        const resp = await fetch('blog/posts.txt', { cache: 'no-cache' });
-        if (!resp.ok) throw new Error('Failed to load posts.txt');
-        const text = await resp.text();
-        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
-        const items = lines.map(l => 
-        {
-            const parts = l.split('|');
-            const [title, href, image] = [parts[0] || '', parts[1] || '', parts[2] || 'assets/not-found.svg'];
-            return { title, href, image };
-        }).reverse().slice(0, 3); // take last three entries
-
-        container.innerHTML = items.map(({ title, href, image }) => `
+        const resp = await fetch('blog/posts.json', { cache: 'no-cache' });
+        if (!resp.ok) throw new Error('Failed to load blog/posts.json');
+        const items = await resp.json();
+        if (!Array.isArray(items) || items.length === 0) {
+            container.innerHTML = '<li class="muted">No recent posts found.</li>';
+            return;
+        }
+            const fmt = (iso) => {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        };
+            const getMetaDate = async (href) => {
+            try {
+                const r = await fetch(href, { cache: 'no-cache' });
+                if (!r.ok) return null;
+                const html = await r.text();
+                const m = html.match(/<meta[^>]*(?:property|name)=["'](?:article:published_time|og:published_time|date)["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+                return m ? m[1] : null;
+            } catch { return null; }
+        };
+            const getMetaDesc = async (href) => {
+                try {
+                    const r = await fetch(href, { cache: 'no-cache' });
+                    if (!r.ok) return null;
+                    const html = await r.text();
+                    const m = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+                              html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+                    return m ? m[1] : null;
+                } catch { return null; }
+            };
+        const recent = await Promise.all(items.slice(0, 3).map(async (it) => {
+            if (it.date) return it;
+                const [metaDate, metaDesc] = await Promise.all([getMetaDate(it.href), getMetaDesc(it.href)]);
+                return { ...it, date: metaDate || it.mtime, description: metaDesc };
+        }));
+        container.innerHTML = recent.map(({ title, href, preview, date, description }) => `
             <li class="blog-card">
                 <a href="${href}">
                     <span class="thumb">
-                        <img src="${image || 'assets/not-found.svg'}" alt="${title} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
+                        <img src="${preview || 'assets/not-found.svg'}" alt="${title} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
                     </span>
                     <h3>${title}</h3>
+                    ${description ? `<span class=\"post-desc\">${description}</span>` : ''}
+                    ${date ? `<span class="post-date">${fmt(date)}</span>` : ''}
                 </a>
             </li>
         `).join('');
-    } 
+    }
     catch (e) 
     {
         console.error(e);
@@ -159,13 +191,44 @@ async function renderAllBlogPosts(containerId = 'all-posts')
             container.innerHTML = '<li class="muted">No posts available.</li>';
             return;
         }
-        container.innerHTML = items.map(({ title, href, preview }) => `
+            const fmt = (iso) => {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        };
+            const getMetaDate = async (href) => {
+            try {
+                const r = await fetch(href, { cache: 'no-cache' });
+                if (!r.ok) return null;
+                const html = await r.text();
+                const m = html.match(/<meta[^>]*(?:property|name)=["'](?:article:published_time|og:published_time|date)["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+                return m ? m[1] : null;
+            } catch { return null; }
+        };
+            const getMetaDesc = async (href) => {
+                try {
+                    const r = await fetch(href, { cache: 'no-cache' });
+                    if (!r.ok) return null;
+                    const html = await r.text();
+                    const m = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+                              html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+                    return m ? m[1] : null;
+                } catch { return null; }
+            };
+        const enriched = await Promise.all(items.map(async (it) => {
+            if (it.date) return it;
+                const [metaDate, metaDesc] = await Promise.all([getMetaDate(it.href), getMetaDesc(it.href)]);
+                return { ...it, date: metaDate || it.mtime, description: metaDesc };
+        }));
+        container.innerHTML = enriched.map(({ title, href, preview, date, description }) => `
             <li class="blog-card">
                 <a href="${href}">
                     <span class="thumb">
                         <img src="${preview || 'assets/not-found.svg'}" alt="${title} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
                     </span>
                     <h3>${title}</h3>
+                    ${description ? `<span class=\"post-desc\">${description}</span>` : ''}
+                    ${date ? `<span class="post-date">${fmt(date)}</span>` : ''}
                 </a>
             </li>
         `).join('');
