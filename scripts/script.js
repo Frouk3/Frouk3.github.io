@@ -151,9 +151,9 @@ async function renderRecentPosts()
                     <span class="thumb">
                         <img src="${preview || 'assets/not-found.svg'}" alt="${title} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
                     </span>
+                    ${date ? `<span class="post-date">${fmt(date)}</span>` : ''}
                     <h3>${title}</h3>
                     ${description ? `<span class=\"post-desc\">${description}</span>` : ''}
-                    ${date ? `<span class="post-date">${fmt(date)}</span>` : ''}
                 </a>
             </li>
         `).join('');
@@ -226,9 +226,9 @@ async function renderAllBlogPosts(containerId = 'all-posts')
                     <span class="thumb">
                         <img src="${preview || 'assets/not-found.svg'}" alt="${title} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
                     </span>
+                    ${date ? `<span class="post-date">${fmt(date)}</span>` : ''}
                     <h3>${title}</h3>
                     ${description ? `<span class=\"post-desc\">${description}</span>` : ''}
-                    ${date ? `<span class="post-date">${fmt(date)}</span>` : ''}
                 </a>
             </li>
         `).join('');

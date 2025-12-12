@@ -85,13 +85,15 @@ body.theme-fade {
     color: var(--text);
     text-decoration: none;
     letter-spacing: 0.02em;
-    padding: 10px 0;
+    padding: 0; /* no button-like padding */
+    border-radius: 0; /* remove rounded corners */
     transition: color 0.2s ease;
     white-space: nowrap;
 }
 
 .site-brand:hover {
     color: var(--accent);
+    text-decoration: none;
 }
 
 .main-nav-list.hide {
@@ -117,7 +119,7 @@ body.theme-fade {
     margin-left: 12px;
 }
 
-.main-nav-list a {
+.main-nav-list a:not(.site-brand) {
     display: block;
     padding: 10px 18px;
     text-decoration: none;
@@ -127,7 +129,7 @@ body.theme-fade {
     transition: background 0.2s, color 0.2s;
 }
 
-.main-nav-list a:hover {
+.main-nav-list a:not(.site-brand):hover {
     background: var(--hover);
     color: var(--accent);
 }
@@ -248,7 +250,7 @@ footer {
     margin-top: 0;
 }
 
-.main-nav-list a[aria-current="page"] {
+.main-nav-list a:not(.site-brand)[aria-current="page"] {
     background: var(--hover);
     color: var(--accent);
 }
@@ -272,7 +274,7 @@ footer {
 .blog-card {
     width: 100%;
     max-width: 320px;
-    text-align: center;
+    text-align: left;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -316,6 +318,7 @@ footer {
     margin: 12px 0 0 0;
     font-size: 1.1rem;
     font-weight: 600;
+    color: var(--link);
 }
 
 .blog-card a:hover h3 {
