@@ -1,3 +1,0 @@
-# One post per line; latest at bottom
-# Format: Title|/relative/path/to/post.html|/relative/path/to/preview
-Who is Frouk?|/blog/aboutme.html|/assets/aboutme-preview.png
