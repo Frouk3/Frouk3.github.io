@@ -3,7 +3,6 @@ const THEME_KEY = 'theme';
 let themeToggleBtn = null;
 let suppressFadeUntil = 0;
 const BLOG_CONTENT_INDEX_URL = 'https://raw.githubusercontent.com/Frouk3/web_page_content_pages/main/index.json';
-const LOCAL_BLOG_INDEX_URL = 'blog/posts.json';
 const BLOG_POST_PAGE_URL = 'blog/post.html';
 
 function resolveContentUrl(path, baseUrl = window.location.href) {
@@ -191,8 +190,7 @@ function buildPostPageUrl(item, baseUrl) {
 
 async function fetchBlogIndex() {
     const sources = [
-        { url: BLOG_CONTENT_INDEX_URL, baseUrl: 'https://raw.githubusercontent.com/Frouk3/web_page_content_pages/main/' },
-        { url: LOCAL_BLOG_INDEX_URL, baseUrl: window.location.href }
+        { url: BLOG_CONTENT_INDEX_URL, baseUrl: 'https://raw.githubusercontent.com/Frouk3/web_page_content_pages/main/' }
     ];
     for (const source of sources) {
         try {
