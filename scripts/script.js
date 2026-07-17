@@ -52,6 +52,7 @@ function renderInlineMarkdown(text, baseUrl) {
         return `<a href="${safe}"${rel}>${label}</a>`;
     });
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
     html = html.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
@@ -64,8 +65,8 @@ function renderMarkdown(markdown, baseUrl) {
     const lines = String(markdown || '').replace(/\r\n/g, '\n').split('\n');
     const blocks = [];
     let paragraph = [];
-    let listType = '';
-    let listItems = [];
+    let listStack = [];
+    let listRoots = [];
     let inCode = false;
     let codeLang = '';
     let codeLines = [];
@@ -76,12 +77,64 @@ function renderMarkdown(markdown, baseUrl) {
         paragraph = [];
     };
 
+    const renderListItem = (item) => {
+        const content = item.text ? renderInlineMarkdown(item.text, baseUrl) : '';
+        const children = item.children.map((child) => renderList(child)).join('');
+        return `<li>${content}${children}</li>`;
+    };
+
+    const renderList = (list) => {
+        const items = list.items.map((item) => renderListItem(item)).join('');
+        return `<${list.type}>${items}</${list.type}>`;
+    };
+
+    const createList = (type, indent, parentItem) => {
+        const list = { type, indent, items: [] };
+        if (parentItem) {
+            parentItem.children.push(list);
+        } else {
+            listRoots.push(list);
+        }
+        listStack.push(list);
+        return list;
+    };
+
+    const getCurrentItem = (list) => (list && list.items.length ? list.items[list.items.length - 1] : null);
+
+    const addListItem = (type, indent, text) => {
+        while (listStack.length && indent < listStack[listStack.length - 1].indent) {
+            listStack.pop();
+        }
+
+        let current = listStack[listStack.length - 1] || null;
+
+        if (current && indent > current.indent) {
+            const parentItem = getCurrentItem(current);
+            if (parentItem) {
+                current = createList(type, indent, parentItem);
+            }
+        }
+
+        if (!current) {
+            current = createList(type, indent, null);
+        } else if (indent === current.indent && current.type !== type) {
+            listStack.pop();
+            const parentList = listStack[listStack.length - 1] || null;
+            const parentItem = parentList ? getCurrentItem(parentList) : null;
+            current = createList(type, indent, parentItem);
+        } else if (indent > current.indent) {
+            // Fallback for malformed indentation when no parent item is available.
+            current = createList(type, indent, null);
+        }
+
+        current.items.push({ text, children: [] });
+    };
+
     const flushList = () => {
-        if (!listItems.length) return;
-        const tag = listType === 'ol' ? 'ol' : 'ul';
-        blocks.push(`<${tag}>${listItems.map((item) => `<li>${renderInlineMarkdown(item, baseUrl)}</li>`).join('')}</${tag}>`);
-        listItems = [];
-        listType = '';
+        if (!listRoots.length) return;
+        blocks.push(listRoots.map((list) => renderList(list)).join(''));
+        listStack = [];
+        listRoots = [];
     };
 
     const flushCode = () => {
@@ -136,21 +189,14 @@ function renderMarkdown(markdown, baseUrl) {
             continue;
         }
 
-        const unordered = line.match(/^[-*+]\s+(.+)$/);
-        if (unordered) {
+        const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);
+        if (listMatch) {
             flushParagraph();
-            if (listType && listType !== 'ul') flushList();
-            listType = 'ul';
-            listItems.push(unordered[1]);
-            continue;
-        }
-
-        const ordered = line.match(/^\d+\.\s+(.+)$/);
-        if (ordered) {
-            flushParagraph();
-            if (listType && listType !== 'ol') flushList();
-            listType = 'ol';
-            listItems.push(ordered[1]);
+            const indent = listMatch[1].replace(/\t/g, '    ').length;
+            const marker = listMatch[2];
+            const text = listMatch[3];
+            const type = /\d+\./.test(marker) ? 'ol' : 'ul';
+            addListItem(type, indent, text);
             continue;
         }
 
