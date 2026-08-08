@@ -40,10 +40,78 @@ function safeUrl(url, baseUrl = window.location.href) {
 }
 
 function renderInlineMarkdown(text, baseUrl) {
-    let html = escapeHtml(text);
+    const input = String(text || '');
+
+    // Helper: parse attribute block like {width=300 loading=lazy class="foo"}
+    const parseAttrBlock = (block) => {
+        const attrs = {};
+        if (!block) return attrs;
+        const inner = block.replace(/^{|}$/g, '').trim();
+        const re = /([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"']+))/g;
+        let m;
+        while ((m = re.exec(inner))) {
+            const key = m[1].toLowerCase();
+            const val = m[2] || m[3] || m[4] || '';
+            attrs[key] = val;
+        }
+        return attrs;
+    };
+
+    const buildAttrString = (attrs) => {
+        if (!attrs) return '';
+        const allowed = new Set(['alt', 'width', 'height', 'loading', 'class', 'id']);
+        const parts = [];
+        for (const k of Object.keys(attrs)) {
+            if (!allowed.has(k)) continue;
+            let v = String(attrs[k] || '').trim();
+            if (!v) continue;
+            if ((k === 'width' || k === 'height') && !/^\d+(px|%)?$/.test(v)) continue;
+            if (k === 'loading' && !/^(lazy|eager)$/.test(v)) continue;
+            v = escapeAttr(v);
+            parts.push(`${k}="${v}"`);
+        }
+        return parts.length ? ' ' + parts.join(' ') : '';
+    };
+
+    // First, allow raw <img ...> tags by sanitizing their attributes and replacing them with placeholders
+    const imgPlaceholders = [];
+    let working = input.replace(/<img\b([^>]*)>/gi, (match, attrText) => {
+        const attrs = {};
+        const are = /([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g;
+        let mm;
+        while ((mm = are.exec(attrText))) {
+            const k = mm[1].toLowerCase();
+            const v = mm[2] || mm[3] || mm[4] || '';
+            attrs[k] = v;
+        }
+        const src = safeUrl(attrs.src || attrs.data-src || '', baseUrl);
+        if (!src || src === '#') return ''; // drop unsafe images
+        const a = { src, alt: attrs.alt || '', width: attrs.width, height: attrs.height, loading: attrs.loading, class: attrs.class, id: attrs.id };
+        const html = `<img src="${src}" alt="${escapeAttr(a.alt)}"${buildAttrString(a)}>`;
+        const idx = imgPlaceholders.push(html) - 1;
+        return `@@IMGPL${idx}@@`;
+    });
+
+    // Escape the remainder for safety
+    let html = escapeHtml(working);
+
+    // Restore sanitized img placeholders
+    html = html.replace(/@@IMGPL(\d+)@@/g, (_, idx) => imgPlaceholders[Number(idx)] || '');
+
+    // Markdown image syntax with optional title and optional attribute block `{...}` after it
+    html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\s*(\{[^}]*\})?/g, (_, alt, url, title, attrBlock) => {
+        const safe = safeUrl(url, baseUrl);
+        if (!safe || safe === '#') return ''; // drop unsafe images
+        const attrs = parseAttrBlock(attrBlock || '');
+        attrs.alt = attrs.alt || alt || title || '';
+        const attrStr = buildAttrString(attrs);
+        return `<img src="${safe}" alt="${escapeAttr(attrs.alt)}"${attrStr}>`;
+    });
+    // Fallback: permissive match for simple cases that the previous regex might miss
     html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
         const safe = safeUrl(url, baseUrl);
-        return `<img src="${safe}" alt="${escapeAttr(alt)}">`;
+        if (!safe || safe === '#') return '';
+        return `<img src="${safe}" alt="${escapeAttr(alt || '')}">`;
     });
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
         const safe = safeUrl(url, baseUrl);
@@ -51,12 +119,23 @@ function renderInlineMarkdown(text, baseUrl) {
         const rel = external ? ' rel="noopener noreferrer" target="_blank"' : '';
         return `<a href="${safe}"${rel}>${label}</a>`;
     });
+    // Protect existing HTML tags so inline formatting doesn't modify attributes/URLs
+    const _tagPlaceholders = [];
+    html = html.replace(/<[^>]+>/g, (m) => {
+        const i = _tagPlaceholders.push(m) - 1;
+        return `@@HTMLTAG${i}@@`;
+    });
+
+    // Inline formatting (safe because tags are masked)
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
     html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
     html = html.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
     html = html.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1<em>$2</em>');
+
+    // Restore masked HTML tags
+    html = html.replace(/@@HTMLTAG(\d+)@@/g, (_, idx) => _tagPlaceholders[Number(idx)] || '');
     html = html.replace(/&lt;br\b[^&]*?&gt;/gi, '<br>');
     return html;
 }
@@ -449,6 +528,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const saved = (() => { try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; } })();
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const initial = saved || (prefersDark ? 'dark' : 'light');
+    updateGiscusTheme(initial);
+});
+
+// Handle pages restored from bfcache (back/forward navigation) and popstate
+// Re-apply theme and clear transient fade classes so the UI doesn't remain hidden.
+window.addEventListener('pageshow', (ev) => {
+    try { document.body.classList.remove('page-fade', 'suppress-fade', 'theme-fade'); } catch (e) { /* ignore */ }
+    const saved = (() => { try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; } })();
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initial = saved || (prefersDark ? 'dark' : 'light');
+    applyTheme(initial);
+    updateGiscusTheme(initial);
+});
+
+window.addEventListener('popstate', () => {
+    try { document.body.classList.remove('page-fade', 'suppress-fade', 'theme-fade'); } catch (e) { /* ignore */ }
+    const saved = (() => { try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; } })();
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initial = saved || (prefersDark ? 'dark' : 'light');
+    applyTheme(initial);
     updateGiscusTheme(initial);
 });
 
