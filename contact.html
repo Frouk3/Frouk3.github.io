@@ -15,19 +15,25 @@
     </head>
     <body>
         <header>
-            <div class="main-nav-list">
+            <div class="side-nav-shell">
+                <button class="menu-toggle" type="button" aria-controls="site-menu" aria-expanded="false" aria-label="Open navigation menu">
+                    <span class="menu-icon" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </span>
+                </button>
                 <div class="brand-slot">
                     <a class="site-brand" href="./index.html">Frouk</a>
                 </div>
-                <nav aria-label="Main navigation">
-                    <ul>
-                        <li><a href="./index.html">Home</a></li>
-                        <li><a href="./projects.html">Projects</a></li>
-                        <li><a href="./blog.html">Blog</a></li>
-                        <li><a href="./contact.html" aria-current="page">Contact</a></li>
-                    </ul>
-                </nav>
             </div>
+            <nav id="site-menu" class="side-nav-panel" aria-label="Main navigation">
+                <ul>
+                    <li><a href="./index.html">Home</a></li>
+                    <li><a href="./projects.html">Projects</a></li>
+                    <li><a href="./blog.html">Blog</a></li>
+                    <li><a href="./contact.html" aria-current="page">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="menu-backdrop" hidden></div>
         </header>
 
         <main>

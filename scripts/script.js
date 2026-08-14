@@ -2,6 +2,7 @@
 const THEME_KEY = 'theme';
 let themeToggleBtn = null;
 let suppressFadeUntil = 0;
+let sideMenuInitialized = false;
 const BLOG_CONTENT_INDEX_URL = 'https://raw.githubusercontent.com/Frouk3/web_page_content_pages/main/index.json';
 const BLOG_POST_PAGE_URL = 'blog/post.html';
 
@@ -423,7 +424,7 @@ function initThemeToggle()
 
     applyTheme(initial);
 
-    const nav = document.querySelector('.main-nav-list');
+    const nav = document.querySelector('.side-nav-shell');
     if (nav) 
     {
         nav.appendChild(themeToggleBtn);
@@ -432,6 +433,48 @@ function initThemeToggle()
     {
         document.body.prepend(themeToggleBtn);
     }
+}
+
+function initSideMenu() {
+    if (sideMenuInitialized) return;
+
+    const body = document.body;
+    const menuButton = document.querySelector('.menu-toggle');
+    const menuPanel = document.getElementById('site-menu');
+    const backdrop = document.querySelector('.menu-backdrop');
+    if (!menuButton || !menuPanel || !backdrop) return;
+
+    const setMenuState = (open) => {
+        body.classList.toggle('menu-open', open);
+        menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+        menuButton.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+        if (open) {
+            backdrop.removeAttribute('hidden');
+        } else {
+            backdrop.setAttribute('hidden', 'hidden');
+        }
+    };
+
+    menuButton.addEventListener('click', () => {
+        const isOpen = body.classList.contains('menu-open');
+        setMenuState(!isOpen);
+    });
+
+    backdrop.addEventListener('click', () => setMenuState(false));
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setMenuState(false);
+        }
+    });
+
+    menuPanel.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+        if (link) setMenuState(false);
+    });
+
+    setMenuState(false);
+    sideMenuInitialized = true;
 }
 
 function updateGiscusTheme(theme) {
@@ -522,6 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRecentPosts();
     renderAllBlogPosts();
     renderBlogPostPage();
+    initSideMenu();
     initThemeToggle();
     initPageFade();
     // ensure giscus matches stored/system theme on first load
