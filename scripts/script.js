@@ -344,6 +344,9 @@ function normalizeBlogItem(item, baseUrl) {
         preview: resolveContentUrl(item.preview || item.cover || '', baseUrl),
         date: item.date || item.mtime || '',
         description: item.description || item.summary || '',
+        tags: Array.isArray(item.tags)
+            ? item.tags.map((tag) => String(tag).trim()).filter(Boolean)
+            : [],
         slug: item.slug || '',
         body: item.body || href
     };
@@ -599,32 +602,75 @@ async function renderAllBlogPosts(containerId = 'all-posts')
 {
     const container = document.getElementById(containerId);
     if (!container) return;
+    const tagsContainer = document.getElementById('blog-tags');
     try 
     {
         const { items, baseUrl } = await fetchBlogIndex();
         const normalized = items.map((item) => normalizeBlogItem(item, baseUrl)).filter(Boolean);
+        const availableTags = [...new Set(normalized.flatMap(({ tags }) => tags))]
+            .sort((a, b) => a.localeCompare(b));
+        const selectedTags = new Set();
+
+        if (tagsContainer) {
+            tagsContainer.innerHTML = availableTags.length
+                ? availableTags.map((tag) => `
+                    <button type="button" class="blog-tag" data-tag="${escapeAttr(tag)}" aria-pressed="false">
+                        ${escapeHtml(tag)}
+                    </button>
+                `).join('')
+                : '<span class="muted">No tags available.</span>';
+        }
+
         if (!Array.isArray(normalized) || normalized.length === 0) 
         {
             container.innerHTML = '<li class="muted">No posts available.</li>';
             return;
         }
-            const fmt = (iso) => {
+
+        const fmt = (iso) => {
             if (!iso) return '';
             const d = new Date(iso);
             return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
         };
-        container.innerHTML = normalized.map(({ title, href, preview, date, description }) => `
-            <li class="blog-card">
-                <a href="${href}">
-                    <span class="thumb">
-                        <img src="${preview || 'assets/not-found.svg'}" alt="${title} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
-                    </span>
-                    ${date ? `<span class="post-date">${fmt(date)}</span>` : ''}
-                    <h3>${title}</h3>
-                    ${description ? `<span class=\"post-desc\">${description}</span>` : ''}
-                </a>
-            </li>
-        `).join('');
+
+        const renderPosts = () => {
+            const filtered = selectedTags.size
+                ? normalized.filter(({ tags }) => tags.some((tag) => selectedTags.has(tag)))
+                : normalized;
+
+            container.innerHTML = filtered.length
+                ? filtered.map(({ title, href, preview, date, description, tags }) => `
+                    <li class="blog-card">
+                        <a href="${href}">
+                            <span class="thumb">
+                                <img src="${preview || 'assets/not-found.svg'}" alt="${escapeAttr(title)} preview" loading="lazy" onerror="this.src='assets/not-found.svg'">
+                            </span>
+                            ${date ? `<span class="post-date">${fmt(date)}</span>` : ''}
+                            <h3>${escapeHtml(title)}</h3>
+                            ${description ? `<span class="post-desc">${escapeHtml(description)}</span>` : ''}
+                            ${tags.length ? `<span class="post-tags">${tags.map((tag) => `<span class="post-tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}
+                        </a>
+                    </li>
+                `).join('')
+                : '<li class="muted">No posts match the selected tags.</li>';
+        };
+
+        renderPosts();
+
+        if (tagsContainer) {
+            tagsContainer.addEventListener('click', (event) => {
+                const button = event.target.closest('.blog-tag');
+                if (!button) return;
+                const tag = button.dataset.tag;
+                if (selectedTags.has(tag)) {
+                    selectedTags.delete(tag);
+                } else {
+                    selectedTags.add(tag);
+                }
+                button.setAttribute('aria-pressed', selectedTags.has(tag) ? 'true' : 'false');
+                renderPosts();
+            });
+        }
     }
     catch (e) 
     {
@@ -690,4 +736,3 @@ async function renderBlogPostPage() {
         container.innerHTML = '<p class="muted">Failed to load this post.</p>';
     }
 }
-
