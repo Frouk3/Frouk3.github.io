@@ -33,6 +33,21 @@
         <main>
             <h1>Blog</h1>
             <section class="blog-filters" aria-labelledby="blog-filter-heading">
+                <div class="blog-controls">
+                    <div class="blog-search">
+                        <label for="blog-search-input">Search posts</label>
+                        <input id="blog-search-input" type="search" placeholder="Search by title, description, or tag" autocomplete="off">
+                    </div>
+                    <div class="blog-sort">
+                        <label for="blog-sort-select">Sort by</label>
+                        <select id="blog-sort-select">
+                            <option value="date-desc">Date (newest first)</option>
+                            <option value="date-asc">Date (oldest first)</option>
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                        </select>
+                    </div>
+                </div>
                 <h2 id="blog-filter-heading">Filter by tag</h2>
                 <div id="blog-tags" class="blog-tags" role="group" aria-label="Blog tags"></div>
             </section>

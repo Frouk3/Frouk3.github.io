@@ -352,11 +352,6 @@ function normalizeBlogItem(item, baseUrl) {
     };
 }
 
-function parseBlogDate(value) {
-    const parsed = Date.parse(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-}
-
 async function resolveBlogPostBySlug(slug) {
     const { items, baseUrl } = await fetchBlogIndex();
     const normalizedSlug = String(slug || '').trim();
@@ -522,7 +517,7 @@ function initPageFade()
     }
 }
 
-// Render last three blog posts using posts.json (with dates)
+// Render the three newest blog posts. The source index is ordered newest first.
 async function renderRecentPosts() 
 {
     const container = document.getElementById('recent-posts');
@@ -540,10 +535,7 @@ async function renderRecentPosts()
             const d = new Date(iso);
             return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
         };
-        const recent = normalized
-            .slice()
-            .sort((a, b) => parseBlogDate(b.date) - parseBlogDate(a.date))
-            .slice(0, 3);
+        const recent = normalized.slice(0, 3);
         container.innerHTML = recent.map(({ title, href, preview, date, description }) => `
             <li class="blog-card">
                 <a href="${href}">
@@ -603,6 +595,8 @@ async function renderAllBlogPosts(containerId = 'all-posts')
     const container = document.getElementById(containerId);
     if (!container) return;
     const tagsContainer = document.getElementById('blog-tags');
+    const searchInput = document.getElementById('blog-search-input');
+    const sortSelect = document.getElementById('blog-sort-select');
     try 
     {
         const { items, baseUrl } = await fetchBlogIndex();
@@ -610,6 +604,9 @@ async function renderAllBlogPosts(containerId = 'all-posts')
         const availableTags = [...new Set(normalized.flatMap(({ tags }) => tags))]
             .sort((a, b) => a.localeCompare(b));
         const selectedTags = new Set();
+        let searchQuery = '';
+        let sortOrder = sortSelect ? sortSelect.value : 'date-desc';
+        let searchTimeout = null;
 
         if (tagsContainer) {
             tagsContainer.innerHTML = availableTags.length
@@ -634,12 +631,31 @@ async function renderAllBlogPosts(containerId = 'all-posts')
         };
 
         const renderPosts = () => {
-            const filtered = selectedTags.size
-                ? normalized.filter(({ tags }) => tags.some((tag) => selectedTags.has(tag)))
-                : normalized;
+            const filtered = normalized
+                .filter(({ title, description, tags }) => {
+                    if (!searchQuery) return true;
+                    const searchableText = [title, description, ...tags].join(' ').toLocaleLowerCase();
+                    return searchableText.includes(searchQuery);
+                })
+                .filter(({ tags }) => selectedTags.size
+                    ? tags.some((tag) => selectedTags.has(tag))
+                    : true);
 
-            container.innerHTML = filtered.length
-                ? filtered.map(({ title, href, preview, date, description, tags }) => `
+            const sorted = filtered.slice().sort((a, b) => {
+                if (sortOrder === 'name-asc' || sortOrder === 'name-desc') {
+                    const comparison = a.title.localeCompare(b.title);
+                    return sortOrder === 'name-asc' ? comparison : -comparison;
+                }
+
+                const aDate = Date.parse(a.date);
+                const bDate = Date.parse(b.date);
+                const comparison = (Number.isFinite(aDate) ? aDate : 0)
+                    - (Number.isFinite(bDate) ? bDate : 0);
+                return sortOrder === 'date-asc' ? comparison : -comparison;
+            });
+
+            container.innerHTML = sorted.length
+                ? sorted.map(({ title, href, preview, date, description, tags }) => `
                     <li class="blog-card">
                         <a href="${href}">
                             <span class="thumb">
@@ -652,10 +668,27 @@ async function renderAllBlogPosts(containerId = 'all-posts')
                         </a>
                     </li>
                 `).join('')
-                : '<li class="muted">No posts match the selected tags.</li>';
+                : '<li class="muted">No posts match the selected filters.</li>';
         };
 
         renderPosts();
+
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchQuery = searchInput.value.trim().toLocaleLowerCase();
+                    renderPosts();
+                }, 300);
+            });
+        }
+
+        if (sortSelect) {
+            sortSelect.addEventListener('change', () => {
+                sortOrder = sortSelect.value;
+                renderPosts();
+            });
+        }
 
         if (tagsContainer) {
             tagsContainer.addEventListener('click', (event) => {
